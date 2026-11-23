@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { prisma } from "../lib/prisma.js";
-import { authMiddleware, optionalAuthMiddleware } from "../middleware/auth.js";
-import { formatPlaylist } from "../lib/formatters.js";
-import { getAssetUrl } from "../lib/cdn.js";
+import { prisma } from "../lib/prisma.ts";
+import { authMiddleware, optionalAuthMiddleware } from "../middleware/auth.ts";
+import { formatPlaylist } from "../lib/formatters.ts";
+import { getAssetUrl } from "../lib/cdn.ts";
 
 export const userRouter = new Hono();
 
@@ -105,9 +105,15 @@ userRouter.patch(
         ...(body.name !== undefined ? { name: body.name } : {}),
         ...(body.bio !== undefined ? { bio: body.bio } : {}),
         ...(body.isPrivate !== undefined ? { isPrivate: body.isPrivate } : {}),
-        ...(body.downloadPreference !== undefined ? { downloadPreference: body.downloadPreference } : {}),
-        ...(body.instagramHandle !== undefined ? { instagramHandle: body.instagramHandle } : {}),
-        ...(body.sendDailyFeatured !== undefined ? { sendDailyFeatured: body.sendDailyFeatured } : {}),
+        ...(body.downloadPreference !== undefined
+          ? { downloadPreference: body.downloadPreference }
+          : {}),
+        ...(body.instagramHandle !== undefined
+          ? { instagramHandle: body.instagramHandle }
+          : {}),
+        ...(body.sendDailyFeatured !== undefined
+          ? { sendDailyFeatured: body.sendDailyFeatured }
+          : {}),
       },
     });
 
@@ -128,7 +134,9 @@ userRouter.get("/:userSlug", optionalAuthMiddleware, async (c) => {
   const currentUser = c.get("user");
 
   // Lookup by userSlug, id, or instagramHandle
-  const cleanParam = userSlugParam.startsWith("@") ? userSlugParam.substring(1) : userSlugParam;
+  const cleanParam = userSlugParam.startsWith("@")
+    ? userSlugParam.substring(1)
+    : userSlugParam;
 
   const targetUser = await prisma.user.findFirst({
     where: {

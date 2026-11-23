@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { prisma } from "../lib/prisma.js";
-import { formatAlbum, formatSong } from "../lib/formatters.js";
-import { defaultSongInclude } from "./home.js";
+import { prisma } from "../lib/prisma.ts";
+import { formatAlbum, formatSong } from "../lib/formatters.ts";
+import { defaultSongInclude } from "./home.ts";
 
 export const albumsRouter = new Hono();
 
@@ -39,7 +39,10 @@ async function findAlbumByIdOrName(idOrName: string) {
  */
 albumsRouter.get("/", async (c) => {
   const page = Math.max(1, parseInt(c.req.query("page") || "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(c.req.query("limit") || "20", 10)));
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(c.req.query("limit") || "20", 10))
+  );
   const skip = (page - 1) * limit;
 
   const where = { isActive: true };

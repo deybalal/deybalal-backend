@@ -1,5 +1,5 @@
 import { createMiddleware } from "hono/factory";
-import { prisma } from "../lib/prisma.js";
+import { prisma } from "../lib/prisma.ts";
 import type { User, Session, Role } from "@prisma/client";
 
 declare module "hono" {
@@ -12,7 +12,10 @@ declare module "hono" {
 export const authMiddleware = createMiddleware(async (c, next) => {
   const authHeader = c.req.header("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return c.json({ success: false, message: "توکن احراز هویت ارسال نشده است." }, 401);
+    return c.json(
+      { success: false, message: "توکن احراز هویت ارسال نشده است." },
+      401
+    );
   }
 
   const token = authHeader.substring(7).trim();
@@ -22,7 +25,10 @@ export const authMiddleware = createMiddleware(async (c, next) => {
   });
 
   if (!session || new Date() > session.expiresAt || session.user.isBanned) {
-    return c.json({ success: false, message: "نشست نامعتبر یا منقضی شده است." }, 401);
+    return c.json(
+      { success: false, message: "نشست نامعتبر یا منقضی شده است." },
+      401
+    );
   }
 
   c.set("user", session.user);

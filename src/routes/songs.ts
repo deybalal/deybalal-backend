@@ -1,10 +1,14 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { prisma } from "../lib/prisma.js";
-import { formatSong } from "../lib/formatters.js";
-import { authMiddleware, optionalAuthMiddleware, requireRoles } from "../middleware/auth.js";
-import { defaultSongInclude } from "./home.js";
+import { prisma } from "../lib/prisma.ts";
+import { formatSong } from "../lib/formatters.ts";
+import {
+  authMiddleware,
+  optionalAuthMiddleware,
+  requireRoles,
+} from "../middleware/auth.ts";
+import { defaultSongInclude } from "./home.ts";
 
 export const songsRouter = new Hono();
 
@@ -31,7 +35,10 @@ function extractLrcSnippet(syncedLyrics: string, count: number = 4): string[] {
  */
 songsRouter.get("/top", async (c) => {
   const page = Math.max(1, parseInt(c.req.query("page") || "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(c.req.query("limit") || "20", 10)));
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(c.req.query("limit") || "20", 10))
+  );
   const skip = (page - 1) * limit;
 
   const where = { isActive: true, isDisabled: false };
@@ -65,8 +72,14 @@ songsRouter.get("/top", async (c) => {
  */
 songsRouter.get("/featured", async (c) => {
   const page = Math.max(1, parseInt(c.req.query("page") || "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(c.req.query("limit") || "20", 10)));
-  const sortBy = (c.req.query("sortBy") || "playCount") as "playCount" | "createdAt" | "title";
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(c.req.query("limit") || "20", 10))
+  );
+  const sortBy = (c.req.query("sortBy") || "playCount") as
+    | "playCount"
+    | "createdAt"
+    | "title";
   const sortOrder = (c.req.query("sortOrder") || "desc") as "asc" | "desc";
   const skip = (page - 1) * limit;
 
@@ -142,7 +155,10 @@ songsRouter.get("/random-synced", async (c) => {
   });
 
   if (count === 0) {
-    return c.json({ success: false, message: "آهنگی با متن همگام‌سازی شده یافت نشد." }, 404);
+    return c.json(
+      { success: false, message: "آهنگی با متن همگام‌سازی شده یافت نشد." },
+      404
+    );
   }
 
   const randomSkip = Math.floor(Math.random() * count);
@@ -156,7 +172,9 @@ songsRouter.get("/random-synced", async (c) => {
     include: defaultSongInclude,
   });
 
-  const snippet = song?.syncedLyrics ? extractLrcSnippet(song.syncedLyrics, 4) : [];
+  const snippet = song?.syncedLyrics
+    ? extractLrcSnippet(song.syncedLyrics, 4)
+    : [];
 
   return c.json({
     success: true,
@@ -173,7 +191,10 @@ songsRouter.get("/random-synced", async (c) => {
  */
 songsRouter.get("/", async (c) => {
   const page = Math.max(1, parseInt(c.req.query("page") || "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(c.req.query("limit") || "50", 10)));
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(c.req.query("limit") || "50", 10))
+  );
   const skip = (page - 1) * limit;
 
   const where = { isActive: true, isDisabled: false };
@@ -209,79 +230,87 @@ const downloadSchema = z.object({
   songId: z.string().min(1),
 });
 
-songsRouter.post("/download", authMiddleware, zValidator("json", downloadSchema), async (c) => {
-  const user = c.get("user")!;
-  const { songId } = c.req.valid("json");
+songsRouter.post(
+  "/download",
+  authMiddleware,
+  zValidator("json", downloadSchema),
+  async (c) => {
+    const user = c.get("user")!;
+    const { songId } = c.req.valid("json");
 
-  const song = await prisma.song.findUnique({
-    where: { id: songId },
-  });
+    const song = await prisma.song.findUnique({
+      where: { id: songId },
+    });
 
-  if (!song || song.isDisabled) {
-    return c.json({ success: false, message: "آهنگ یافت نشد یا غیرفعال است." }, 404);
-  }
+    if (!song || song.isDisabled) {
+      return c.json(
+        { success: false, message: "آهنگ یافت نشد یا غیرفعال است." },
+        404
+      );
+    }
 
-  // Find or create download playlist
-  const DOWNLOAD_PLAYLIST_NAME = "لیست دانلود";
-  let playlist = await prisma.playlist.findFirst({
-    where: {
-      userId: user.id,
-      isDownload: true,
-    },
-  });
-
-  if (!playlist) {
-    playlist = await prisma.playlist.create({
-      data: {
-        name: DOWNLOAD_PLAYLIST_NAME,
-        description: "آهنگ‌های دانلود شده برای پخش آفلاین",
-        isDownload: true,
-        isPrivate: true,
+    // Find or create download playlist
+    const DOWNLOAD_PLAYLIST_NAME = "لیست دانلود";
+    let playlist = await prisma.playlist.findFirst({
+      where: {
         userId: user.id,
-        duration: 0,
+        isDownload: true,
       },
     });
-  }
 
-  // Check if song is already in download playlist
-  const existingItem = await prisma.playlistSong.findUnique({
-    where: {
-      playlistId_songId: {
-        playlistId: playlist.id,
-        songId: song.id,
-      },
-    },
-  });
-
-  if (!existingItem) {
-    await prisma.$transaction([
-      prisma.playlistSong.create({
+    if (!playlist) {
+      playlist = await prisma.playlist.create({
         data: {
+          name: DOWNLOAD_PLAYLIST_NAME,
+          description: "آهنگ‌های دانلود شده برای پخش آفلاین",
+          isDownload: true,
+          isPrivate: true,
+          userId: user.id,
+          duration: 0,
+        },
+      });
+    }
+
+    // Check if song is already in download playlist
+    const existingItem = await prisma.playlistSong.findUnique({
+      where: {
+        playlistId_songId: {
           playlistId: playlist.id,
           songId: song.id,
         },
-      }),
-      prisma.playlist.update({
-        where: { id: playlist.id },
-        data: {
-          duration: { increment: song.duration },
-        },
-      }),
-      prisma.song.update({
-        where: { id: song.id },
-        data: {
-          downloads: { increment: 1 },
-        },
-      }),
-    ]);
-  }
+      },
+    });
 
-  return c.json({
-    success: true,
-    message: "آهنگ به لیست دانلود اضافه شد.",
-    playlistId: playlist.id,
-  });
-});
+    if (!existingItem) {
+      await prisma.$transaction([
+        prisma.playlistSong.create({
+          data: {
+            playlistId: playlist.id,
+            songId: song.id,
+          },
+        }),
+        prisma.playlist.update({
+          where: { id: playlist.id },
+          data: {
+            duration: { increment: song.duration },
+          },
+        }),
+        prisma.song.update({
+          where: { id: song.id },
+          data: {
+            downloads: { increment: 1 },
+          },
+        }),
+      ]);
+    }
+
+    return c.json({
+      success: true,
+      message: "آهنگ به لیست دانلود اضافه شد.",
+      playlistId: playlist.id,
+    });
+  }
+);
 
 /**
  * POST /api/v1/songs/check-duplicate
@@ -294,30 +323,39 @@ const checkDuplicateSchema = z.object({
   artistIds: z.array(z.string()).optional(),
 });
 
-songsRouter.post("/check-duplicate", authMiddleware, zValidator("json", checkDuplicateSchema), async (c) => {
-  const { title, titleEn, duration, artistIds } = c.req.valid("json");
+songsRouter.post(
+  "/check-duplicate",
+  authMiddleware,
+  zValidator("json", checkDuplicateSchema),
+  async (c) => {
+    const { title, titleEn, duration, artistIds } = c.req.valid("json");
 
-  const duplicates = await prisma.song.findMany({
-    where: {
-      OR: [
-        { title: { equals: title, mode: "insensitive" as const } },
-        ...(titleEn ? [{ titleEn: { equals: titleEn, mode: "insensitive" as const } }] : []),
-      ],
-      ...(duration ? { duration: { gte: duration - 3, lte: duration + 3 } } : {}),
-      ...(artistIds && artistIds.length > 0
-        ? { artists: { some: { id: { in: artistIds } } } }
-        : {}),
-    },
-    take: 5,
-    include: defaultSongInclude,
-  });
+    const duplicates = await prisma.song.findMany({
+      where: {
+        OR: [
+          { title: { equals: title, mode: "insensitive" as const } },
+          ...(titleEn
+            ? [{ titleEn: { equals: titleEn, mode: "insensitive" as const } }]
+            : []),
+        ],
+        ...(duration
+          ? { duration: { gte: duration - 3, lte: duration + 3 } }
+          : {}),
+        ...(artistIds && artistIds.length > 0
+          ? { artists: { some: { id: { in: artistIds } } } }
+          : {}),
+      },
+      take: 5,
+      include: defaultSongInclude,
+    });
 
-  return c.json({
-    success: true,
-    isDuplicate: duplicates.length > 0,
-    matches: duplicates.map(formatSong),
-  });
-});
+    return c.json({
+      success: true,
+      isDuplicate: duplicates.length > 0,
+      matches: duplicates.map(formatSong),
+    });
+  }
+);
 
 /**
  * GET /api/v1/songs/:id
@@ -382,12 +420,14 @@ songsRouter.post("/:id/play", optionalAuthMiddleware, async (c) => {
   });
 
   if (user) {
-    await prisma.playHistory.create({
-      data: {
-        userId: user.id,
-        songId: song.id,
-      },
-    }).catch(() => null);
+    await prisma.playHistory
+      .create({
+        data: {
+          userId: user.id,
+          songId: song.id,
+        },
+      })
+      .catch(() => null);
   }
 
   return c.json({ success: true });
@@ -418,73 +458,88 @@ const createSongSchema = z.object({
   crew: z.array(z.object({ role: z.string(), name: z.string() })).optional(),
 });
 
-songsRouter.post("/", authMiddleware, zValidator("json", createSongSchema), async (c) => {
-  const user = c.get("user")!;
-  const body = c.req.valid("json");
+songsRouter.post(
+  "/",
+  authMiddleware,
+  zValidator("json", createSongSchema),
+  async (c) => {
+    const user = c.get("user")!;
+    const body = c.req.valid("json");
 
-  // If user is verified artist, ensure artist relation is valid
-  if (user.isUserAnArtist && user.artistId) {
-    if (body.artistIds && !body.artistIds.includes(user.artistId)) {
-      body.artistIds.push(user.artistId);
+    // If user is verified artist, ensure artist relation is valid
+    if (user.isUserAnArtist && user.artistId) {
+      if (body.artistIds && !body.artistIds.includes(user.artistId)) {
+        body.artistIds.push(user.artistId);
+      }
     }
+
+    const baseSlug = `${body.artistEn
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")}-${body.titleEn
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")}`;
+    let slug = baseSlug;
+    const existingSlug = await prisma.song.findUnique({ where: { slug } });
+    if (existingSlug) {
+      slug = `${baseSlug}-${Date.now().toString(36)}`;
+    }
+
+    const highestIndex = await prisma.song.findFirst({
+      orderBy: { index: "desc" },
+      select: { index: true },
+    });
+    const nextIndex = (highestIndex?.index ?? 0) + 1;
+
+    const newSong = await prisma.song.create({
+      data: {
+        slug,
+        title: body.title,
+        titleEn: body.titleEn,
+        artist: body.artist,
+        artistEn: body.artistEn,
+        albumName: body.albumName || null,
+        albumId: body.albumId || null,
+        coverArt: body.coverArt || null,
+        year: body.year || 0,
+        duration: body.duration || 0,
+        uri: body.uri,
+        ogg: body.ogg || null,
+        filename: body.filename || null,
+        lyrics: body.lyrics || null,
+        syncedLyrics: body.syncedLyrics || null,
+        links: (body.links as any) || undefined,
+        index: nextIndex,
+        userId: user.id,
+        isActive: user.role === "administrator" || user.role === "moderator",
+        artists: body.artistIds
+          ? { connect: body.artistIds.map((id) => ({ id })) }
+          : undefined,
+        genres: body.genreIds
+          ? { connect: body.genreIds.map((id) => ({ id })) }
+          : undefined,
+        crew: body.crew
+          ? {
+              create: body.crew.map((cr) => ({
+                role: cr.role,
+                name: cr.name,
+              })),
+            }
+          : undefined,
+      },
+      include: defaultSongInclude,
+    });
+
+    return c.json(
+      {
+        success: true,
+        data: formatSong(newSong),
+      },
+      201
+    );
   }
-
-  const baseSlug = `${body.artistEn.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${body.titleEn.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-  let slug = baseSlug;
-  const existingSlug = await prisma.song.findUnique({ where: { slug } });
-  if (existingSlug) {
-    slug = `${baseSlug}-${Date.now().toString(36)}`;
-  }
-
-  const highestIndex = await prisma.song.findFirst({
-    orderBy: { index: "desc" },
-    select: { index: true },
-  });
-  const nextIndex = (highestIndex?.index ?? 0) + 1;
-
-  const newSong = await prisma.song.create({
-    data: {
-      slug,
-      title: body.title,
-      titleEn: body.titleEn,
-      artist: body.artist,
-      artistEn: body.artistEn,
-      albumName: body.albumName || null,
-      albumId: body.albumId || null,
-      coverArt: body.coverArt || null,
-      year: body.year || 0,
-      duration: body.duration || 0,
-      uri: body.uri,
-      ogg: body.ogg || null,
-      filename: body.filename || null,
-      lyrics: body.lyrics || null,
-      syncedLyrics: body.syncedLyrics || null,
-      links: (body.links as any) || undefined,
-      index: nextIndex,
-      userId: user.id,
-      isActive: user.role === "administrator" || user.role === "moderator",
-      artists: body.artistIds ? { connect: body.artistIds.map((id) => ({ id })) } : undefined,
-      genres: body.genreIds ? { connect: body.genreIds.map((id) => ({ id })) } : undefined,
-      crew: body.crew
-        ? {
-            create: body.crew.map((cr) => ({
-              role: cr.role,
-              name: cr.name,
-            })),
-          }
-        : undefined,
-    },
-    include: defaultSongInclude,
-  });
-
-  return c.json(
-    {
-      success: true,
-      data: formatSong(newSong),
-    },
-    201
-  );
-});
+);
 
 /**
  * PUT /api/v1/songs/:id
@@ -542,12 +597,22 @@ songsRouter.put(
         ...(body.ogg !== undefined ? { ogg: body.ogg } : {}),
         ...(body.filename !== undefined ? { filename: body.filename } : {}),
         ...(body.lyrics !== undefined ? { lyrics: body.lyrics } : {}),
-        ...(body.syncedLyrics !== undefined ? { syncedLyrics: body.syncedLyrics } : {}),
+        ...(body.syncedLyrics !== undefined
+          ? { syncedLyrics: body.syncedLyrics }
+          : {}),
         ...(body.isActive !== undefined ? { isActive: body.isActive } : {}),
-        ...(body.isFeatured !== undefined ? { isFeatured: body.isFeatured } : {}),
-        ...(body.links !== undefined ? { links: (body.links as any) || undefined } : {}),
-        ...(body.artistIds ? { artists: { set: body.artistIds.map((aid) => ({ id: aid })) } } : {}),
-        ...(body.genreIds ? { genres: { set: body.genreIds.map((gid) => ({ id: gid })) } } : {}),
+        ...(body.isFeatured !== undefined
+          ? { isFeatured: body.isFeatured }
+          : {}),
+        ...(body.links !== undefined
+          ? { links: (body.links as any) || undefined }
+          : {}),
+        ...(body.artistIds
+          ? { artists: { set: body.artistIds.map((aid) => ({ id: aid })) } }
+          : {}),
+        ...(body.genreIds
+          ? { genres: { set: body.genreIds.map((gid) => ({ id: gid })) } }
+          : {}),
       },
       include: defaultSongInclude,
     });

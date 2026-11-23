@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { prisma } from "../lib/prisma.js";
-import { formatSong } from "../lib/formatters.js";
-import { authMiddleware } from "../middleware/auth.js";
-import { defaultSongInclude } from "./home.js";
+import { prisma } from "../lib/prisma.ts";
+import { formatSong } from "../lib/formatters.ts";
+import { authMiddleware } from "../middleware/auth.ts";
+import { defaultSongInclude } from "./home.ts";
 
 export const favoritesRouter = new Hono();
 
@@ -46,7 +46,10 @@ const favoriteSongSchema = z.object({
 favoritesRouter.get("/", authMiddleware, async (c) => {
   const user = c.get("user")!;
   const page = Math.max(1, parseInt(c.req.query("page") || "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(c.req.query("limit") || "20", 10)));
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(c.req.query("limit") || "20", 10))
+  );
   const sortOrder = (c.req.query("sortOrder") || "desc") as "asc" | "desc";
   const skip = (page - 1) * limit;
 
@@ -146,7 +149,10 @@ favoritesRouter.post(
     });
 
     if (!song || song.isDisabled) {
-      return c.json({ success: false, message: "آهنگ یافت نشد یا غیرفعال است." }, 404);
+      return c.json(
+        { success: false, message: "آهنگ یافت نشد یا غیرفعال است." },
+        404
+      );
     }
 
     const playlist = await getOrCreateFavoritesPlaylist(user.id);

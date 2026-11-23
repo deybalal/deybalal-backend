@@ -2,25 +2,25 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { env } from "./config/env.js";
-import { errorHandler, notFoundHandler } from "./middleware/error.js";
+import { env } from "./config/env.ts";
+import { errorHandler, notFoundHandler } from "./middleware/error.ts";
 
 // Routes
-import { authRouter } from "./routes/auth.js";
-import { homeRouter } from "./routes/home.js";
-import { songsRouter } from "./routes/songs.js";
-import { artistsRouter } from "./routes/artists.js";
-import { albumsRouter } from "./routes/albums.js";
-import { playlistsRouter } from "./routes/playlists.js";
-import { favoritesRouter } from "./routes/favorites.js";
-import { genresRouter } from "./routes/genres.js";
-import { commentsRouter } from "./routes/comments.js";
-import { lyricsRouter } from "./routes/lyrics.js";
-import { radioRouter } from "./routes/radio.js";
-import { searchRouter } from "./routes/search.js";
-import { userRouter } from "./routes/user.js";
-import { notificationsRouter } from "./routes/notifications.js";
-import { identifyRouter } from "./routes/identify.js";
+import { authRouter } from "./routes/auth.ts";
+import { homeRouter } from "./routes/home.ts";
+import { songsRouter } from "./routes/songs.ts";
+import { artistsRouter } from "./routes/artists.ts";
+import { albumsRouter } from "./routes/albums.ts";
+import { playlistsRouter } from "./routes/playlists.ts";
+import { favoritesRouter } from "./routes/favorites.ts";
+import { genresRouter } from "./routes/genres.ts";
+import { commentsRouter } from "./routes/comments.ts";
+import { lyricsRouter } from "./routes/lyrics.ts";
+import { radioRouter } from "./routes/radio.ts";
+import { searchRouter } from "./routes/search.ts";
+import { userRouter } from "./routes/user.ts";
+import { notificationsRouter } from "./routes/notifications.ts";
+import { identifyRouter } from "./routes/identify.ts";
 
 const app = new Hono();
 
@@ -97,7 +97,9 @@ serve(
     port: env.PORT,
   },
   (info) => {
-    console.log(`🎶 Deybalal Hono Backend is running on http://localhost:${info.port}`);
+    console.log(
+      `🎶 Deybalal Hono Backend is running on http://localhost:${info.port}`
+    );
     console.log(`📡 API v1 Base URL: http://localhost:${info.port}/api/v1`);
   }
 );

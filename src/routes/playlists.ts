@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { prisma } from "../lib/prisma.js";
-import { formatPlaylist, formatSong } from "../lib/formatters.js";
-import { authMiddleware, optionalAuthMiddleware } from "../middleware/auth.js";
-import { defaultSongInclude } from "./home.js";
+import { prisma } from "../lib/prisma.ts";
+import { formatPlaylist, formatSong } from "../lib/formatters.ts";
+import { authMiddleware, optionalAuthMiddleware } from "../middleware/auth.ts";
+import { defaultSongInclude } from "./home.ts";
 
 export const playlistsRouter = new Hono();
 
@@ -25,7 +25,10 @@ const defaultPlaylistInclude = {
 playlistsRouter.get("/", authMiddleware, async (c) => {
   const user = c.get("user")!;
   const page = Math.max(1, parseInt(c.req.query("page") || "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(c.req.query("limit") || "50", 10)));
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(c.req.query("limit") || "50", 10))
+  );
   const skip = (page - 1) * limit;
 
   const where = { userId: user.id };
@@ -63,29 +66,34 @@ const createPlaylistSchema = z.object({
  * POST /api/v1/playlists
  * Creates a new playlist.
  */
-playlistsRouter.post("/", authMiddleware, zValidator("json", createPlaylistSchema), async (c) => {
-  const user = c.get("user")!;
-  const { name, description, isPrivate } = c.req.valid("json");
+playlistsRouter.post(
+  "/",
+  authMiddleware,
+  zValidator("json", createPlaylistSchema),
+  async (c) => {
+    const user = c.get("user")!;
+    const { name, description, isPrivate } = c.req.valid("json");
 
-  const playlist = await prisma.playlist.create({
-    data: {
-      name,
-      description: description || null,
-      isPrivate: isPrivate ?? true,
-      userId: user.id,
-      duration: 0,
-    },
-    include: defaultPlaylistInclude,
-  });
+    const playlist = await prisma.playlist.create({
+      data: {
+        name,
+        description: description || null,
+        isPrivate: isPrivate ?? true,
+        userId: user.id,
+        duration: 0,
+      },
+      include: defaultPlaylistInclude,
+    });
 
-  return c.json(
-    {
-      success: true,
-      data: formatPlaylist(playlist),
-    },
-    201
-  );
-});
+    return c.json(
+      {
+        success: true,
+        data: formatPlaylist(playlist),
+      },
+      201
+    );
+  }
+);
 
 /**
  * GET /api/v1/playlists/:id
@@ -197,7 +205,10 @@ playlistsRouter.post(
     }
 
     if (playlist.userId !== user.id) {
-      return c.json({ success: false, message: "شما مجاز به ویرایش این پلی‌لیست نیستید." }, 403);
+      return c.json(
+        { success: false, message: "شما مجاز به ویرایش این پلی‌لیست نیستید." },
+        403
+      );
     }
 
     const song = await prisma.song.findUnique({
@@ -205,7 +216,10 @@ playlistsRouter.post(
     });
 
     if (!song || song.isDisabled) {
-      return c.json({ success: false, message: "آهنگ یافت نشد یا غیرفعال است." }, 404);
+      return c.json(
+        { success: false, message: "آهنگ یافت نشد یا غیرفعال است." },
+        404
+      );
     }
 
     const existing = await prisma.playlistSong.findUnique({
@@ -218,7 +232,13 @@ playlistsRouter.post(
     });
 
     if (existing) {
-      return c.json({ success: false, message: "این آهنگ قبلاً در این پلی‌لیست وجود دارد." }, 409);
+      return c.json(
+        {
+          success: false,
+          message: "این آهنگ قبلاً در این پلی‌لیست وجود دارد.",
+        },
+        409
+      );
     }
 
     await prisma.$transaction([
@@ -267,7 +287,10 @@ playlistsRouter.delete(
     }
 
     if (playlist.userId !== user.id) {
-      return c.json({ success: false, message: "شما مجاز به ویرایش این پلی‌لیست نیستید." }, 403);
+      return c.json(
+        { success: false, message: "شما مجاز به ویرایش این پلی‌لیست نیستید." },
+        403
+      );
     }
 
     const item = await prisma.playlistSong.findUnique({
@@ -281,7 +304,10 @@ playlistsRouter.delete(
     });
 
     if (!item) {
-      return c.json({ success: false, message: "آهنگ در این پلی‌لیست وجود ندارد." }, 404);
+      return c.json(
+        { success: false, message: "آهنگ در این پلی‌لیست وجود ندارد." },
+        404
+      );
     }
 
     const songDuration = item.song.duration || 0;
@@ -337,14 +363,19 @@ playlistsRouter.patch(
     }
 
     if (playlist.userId !== user.id) {
-      return c.json({ success: false, message: "شما مجاز به تغییر این پلی‌لیست نیستید." }, 403);
+      return c.json(
+        { success: false, message: "شما مجاز به تغییر این پلی‌لیست نیستید." },
+        403
+      );
     }
 
     const updated = await prisma.playlist.update({
       where: { id },
       data: {
         ...(body.name ? { name: body.name } : {}),
-        ...(body.description !== undefined ? { description: body.description } : {}),
+        ...(body.description !== undefined
+          ? { description: body.description }
+          : {}),
         ...(body.isPrivate !== undefined ? { isPrivate: body.isPrivate } : {}),
       },
       include: defaultPlaylistInclude,
@@ -374,7 +405,10 @@ playlistsRouter.delete("/:id", authMiddleware, async (c) => {
   }
 
   if (playlist.userId !== user.id) {
-    return c.json({ success: false, message: "شما مجاز به حذف این پلی‌لیست نیستید." }, 403);
+    return c.json(
+      { success: false, message: "شما مجاز به حذف این پلی‌لیست نیستید." },
+      403
+    );
   }
 
   await prisma.playlist.delete({

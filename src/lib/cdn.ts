@@ -1,8 +1,11 @@
-import { env } from "../config/env.js";
+import { env } from "../config/env.ts";
 
 const DEFAULT_DOWNLOAD_HOST = env.DOWNLOAD_HOST || "https://dl.deybalal.ir";
 
-export function getAssetUrl(path: string | null | undefined, fallback: string = ""): string {
+export function getAssetUrl(
+  path: string | null | undefined,
+  fallback: string = ""
+): string {
   if (!path) return fallback;
   if (path.startsWith("http://") || path.startsWith("https://")) {
     if (path.includes("/assets/")) {
@@ -19,7 +22,9 @@ export function getAssetUrl(path: string | null | undefined, fallback: string = 
 }
 
 export function resolveSongLinks(
-  links: Record<string | number, { url: string; size?: string; bytes?: number }> | any
+  links:
+    | Record<string | number, { url: string; size?: string; bytes?: number }>
+    | any
 ) {
   if (!links || typeof links !== "object") return links;
   const result: Record<string, unknown> = {};

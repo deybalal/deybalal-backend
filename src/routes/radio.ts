@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { prisma } from "../lib/prisma.js";
-import { formatSong } from "../lib/formatters.js";
-import { defaultSongInclude } from "./home.js";
+import { prisma } from "../lib/prisma.ts";
+import { formatSong } from "../lib/formatters.ts";
+import { defaultSongInclude } from "./home.ts";
 
 export const radioRouter = new Hono();
 
@@ -41,8 +41,13 @@ radioRouter.get("/state", async (c) => {
     });
   }
 
-  const elapsedSeconds = Math.max(0, Math.floor((now.getTime() - playlist.startTime.getTime()) / 1000));
-  const totalDuration = playlist.totalDuration || playlist.tracks.reduce((sum, t) => sum + t.duration, 0);
+  const elapsedSeconds = Math.max(
+    0,
+    Math.floor((now.getTime() - playlist.startTime.getTime()) / 1000)
+  );
+  const totalDuration =
+    playlist.totalDuration ||
+    playlist.tracks.reduce((sum, t) => sum + t.duration, 0);
 
   if (totalDuration === 0) {
     return c.json({
@@ -67,7 +72,8 @@ radioRouter.get("/state", async (c) => {
   }
 
   const currentTrack = playlist.tracks[currentTrackIndex];
-  const nextTrack = playlist.tracks[(currentTrackIndex + 1) % playlist.tracks.length];
+  const nextTrack =
+    playlist.tracks[(currentTrackIndex + 1) % playlist.tracks.length];
   const positionInTrack = Math.max(0, loopPosition - currentTrack.startOffset);
 
   return c.json({
@@ -128,7 +134,10 @@ radioRouter.get("/history/today", async (c) => {
     });
   }
 
-  const elapsedSeconds = Math.max(0, Math.floor((now.getTime() - playlist.startTime.getTime()) / 1000));
+  const elapsedSeconds = Math.max(
+    0,
+    Math.floor((now.getTime() - playlist.startTime.getTime()) / 1000)
+  );
   const totalDuration = playlist.totalDuration || 1;
   const loopPosition = elapsedSeconds % totalDuration;
 
@@ -154,7 +163,10 @@ radioRouter.get("/history/today", async (c) => {
  */
 radioRouter.get("/playlists", async (c) => {
   const page = Math.max(1, parseInt(c.req.query("page") || "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(c.req.query("limit") || "20", 10)));
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(c.req.query("limit") || "20", 10))
+  );
   const skip = (page - 1) * limit;
 
   const [total, playlists] = await Promise.all([

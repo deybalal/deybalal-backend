@@ -1,4 +1,4 @@
-import { getAssetUrl, resolveSongLinks } from "./cdn.js";
+import { getAssetUrl, resolveSongLinks } from "./cdn.ts";
 
 export function formatSong(song: any) {
   if (!song) return null;
@@ -88,7 +88,9 @@ export function formatArtist(artist: any) {
     description: artist.description || null,
     ig: artist.ig || null,
     igFollowers: artist.igFollowers || 0,
-    followerCount: artist._count?.followers ?? (Array.isArray(artist.followers) ? artist.followers.length : 0),
+    followerCount:
+      artist._count?.followers ??
+      (Array.isArray(artist.followers) ? artist.followers.length : 0),
     createdAt: artist.createdAt ? new Date(artist.createdAt).getTime() : 0,
     updatedAt: artist.updatedAt ? new Date(artist.updatedAt).getTime() : 0,
   };
@@ -108,7 +110,9 @@ export function formatAlbum(album: any) {
     isFeatured: album.isFeatured,
     artistId: album.artistId,
     artist: album.artist ? formatArtist(album.artist) : null,
-    trackCount: album._count?.songs ?? (Array.isArray(album.songs) ? album.songs.length : 0),
+    trackCount:
+      album._count?.songs ??
+      (Array.isArray(album.songs) ? album.songs.length : 0),
     songs: Array.isArray(album.songs) ? album.songs.map(formatSong) : undefined,
     genres: Array.isArray(album.genres)
       ? album.genres.map((g: any) => ({ id: g.id, name: g.name, slug: g.slug }))
@@ -138,9 +142,13 @@ export function formatPlaylist(playlist: any) {
           image: getAssetUrl(playlist.user.image),
         }
       : null,
-    trackCount: playlist._count?.songs ?? (Array.isArray(playlist.songs) ? playlist.songs.length : 0),
+    trackCount:
+      playlist._count?.songs ??
+      (Array.isArray(playlist.songs) ? playlist.songs.length : 0),
     songs: Array.isArray(playlist.songs)
-      ? playlist.songs.map((ps: any) => (ps.song ? formatSong(ps.song) : formatSong(ps)))
+      ? playlist.songs.map((ps: any) =>
+          ps.song ? formatSong(ps.song) : formatSong(ps)
+        )
       : undefined,
     createdAt: playlist.createdAt ? new Date(playlist.createdAt).getTime() : 0,
     updatedAt: playlist.updatedAt ? new Date(playlist.updatedAt).getTime() : 0,

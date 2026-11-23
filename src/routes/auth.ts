@@ -2,10 +2,10 @@ import { Hono } from "hono";
 import crypto from "crypto";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { prisma } from "../lib/prisma.js";
-import { env } from "../config/env.js";
-import { authMiddleware } from "../middleware/auth.js";
-import { getAssetUrl } from "../lib/cdn.js";
+import { prisma } from "../lib/prisma.ts";
+import { env } from "../config/env.ts";
+import { authMiddleware } from "../middleware/auth.ts";
+import { getAssetUrl } from "../lib/cdn.ts";
 
 export const authRouter = new Hono();
 
@@ -73,7 +73,10 @@ authRouter.post("/telegram/create", async (c) => {
 authRouter.get("/telegram/status", async (c) => {
   const token = c.req.query("token");
   if (!token) {
-    return c.json({ success: false, message: "پارامتر token ارسال نشده است." }, 400);
+    return c.json(
+      { success: false, message: "پارامتر token ارسال نشده است." },
+      400
+    );
   }
 
   const verification = await prisma.verification.findFirst({
@@ -81,11 +84,17 @@ authRouter.get("/telegram/status", async (c) => {
   });
 
   if (!verification) {
-    return c.json({ success: false, status: "NOT_FOUND", message: "توکن یافت نشد." }, 404);
+    return c.json(
+      { success: false, status: "NOT_FOUND", message: "توکن یافت نشد." },
+      404
+    );
   }
 
   if (new Date() > verification.expiresAt) {
-    return c.json({ success: false, status: "EXPIRED", message: "توکن منقضی شده است." }, 410);
+    return c.json(
+      { success: false, status: "EXPIRED", message: "توکن منقضی شده است." },
+      410
+    );
   }
 
   try {
@@ -96,7 +105,10 @@ authRouter.get("/telegram/status", async (c) => {
       });
 
       if (!user || user.isBanned) {
-        return c.json({ success: false, message: "کاربر مسدود است یا یافت نشد." }, 403);
+        return c.json(
+          { success: false, message: "کاربر مسدود است یا یافت نشد." },
+          403
+        );
       }
 
       return c.json({
@@ -118,7 +130,14 @@ authRouter.get("/telegram/status", async (c) => {
       status: "PENDING",
     });
   } catch {
-    return c.json({ success: false, status: "ERROR", message: "داده‌های نشست نامعتبر است." }, 500);
+    return c.json(
+      {
+        success: false,
+        status: "ERROR",
+        message: "داده‌های نشست نامعتبر است.",
+      },
+      500
+    );
   }
 });
 
@@ -144,7 +163,10 @@ authRouter.post(
     if (env.TELEGRAM_BOT_SECRET) {
       const secret = c.req.header("x-telegram-bot-secret");
       if (secret !== env.TELEGRAM_BOT_SECRET) {
-        return c.json({ success: false, message: "کلید امنیتی ربات نامعتبر است." }, 403);
+        return c.json(
+          { success: false, message: "کلید امنیتی ربات نامعتبر است." },
+          403
+        );
       }
     }
 
@@ -167,13 +189,18 @@ authRouter.post(
     });
 
     const displayName =
-      [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(" ").trim() ||
+      [telegramUser.first_name, telegramUser.last_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim() ||
       telegramUser.username ||
       `کاربر ${telegramUser.id}`;
 
     if (!user) {
       const randomId = crypto.randomUUID();
-      const generatedSlug = `tg_${telegramUser.username || telegramUser.id}_${crypto.randomBytes(3).toString("hex")}`;
+      const generatedSlug = `tg_${
+        telegramUser.username || telegramUser.id
+      }_${crypto.randomBytes(3).toString("hex")}`;
       user = await prisma.user.create({
         data: {
           id: randomId,
@@ -201,7 +228,10 @@ authRouter.post(
     }
 
     if (user.isBanned) {
-      return c.json({ success: false, message: "این حساب کاربری مسدود شده است." }, 403);
+      return c.json(
+        { success: false, message: "این حساب کاربری مسدود شده است." },
+        403
+      );
     }
 
     // Create session (valid for 90 days)
@@ -259,9 +289,11 @@ authRouter.get("/me", authMiddleware, async (c) => {
 authRouter.post("/logout", authMiddleware, async (c) => {
   const session = c.get("session");
   if (session) {
-    await prisma.session.delete({
-      where: { id: session.id },
-    }).catch(() => null);
+    await prisma.session
+      .delete({
+        where: { id: session.id },
+      })
+      .catch(() => null);
   }
 
   return c.json({

@@ -1,10 +1,15 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { prisma } from "../lib/prisma.js";
-import { formatSong, formatArtist, formatAlbum, formatPlaylist } from "../lib/formatters.js";
-import { calculateRelevance, normalizeSearchQuery } from "../lib/search.js";
-import { defaultSongInclude } from "./home.js";
+import { prisma } from "../lib/prisma.ts";
+import {
+  formatSong,
+  formatArtist,
+  formatAlbum,
+  formatPlaylist,
+} from "../lib/formatters.ts";
+import { calculateRelevance, normalizeSearchQuery } from "../lib/search.ts";
+import { defaultSongInclude } from "./home.ts";
 
 export const searchRouter = new Hono();
 
@@ -18,7 +23,10 @@ const searchSchema = z.object({
     .optional(),
 });
 
-async function executeSearch(query: string, scope?: { type: string; id: string }) {
+async function executeSearch(
+  query: string,
+  scope?: { type: string; id: string }
+) {
   const normQuery = normalizeSearchQuery(query);
 
   // If scoped to a specific entity
@@ -41,7 +49,9 @@ async function executeSearch(query: string, scope?: { type: string; id: string }
 
       return {
         query,
-        topResult: songs[0] ? { type: "song", data: formatSong(songs[0]) } : null,
+        topResult: songs[0]
+          ? { type: "song", data: formatSong(songs[0]) }
+          : null,
         songs: songs.map(formatSong),
         artists: [],
         albums: [],
@@ -66,7 +76,9 @@ async function executeSearch(query: string, scope?: { type: string; id: string }
 
       return {
         query,
-        topResult: songs[0] ? { type: "song", data: formatSong(songs[0]) } : null,
+        topResult: songs[0]
+          ? { type: "song", data: formatSong(songs[0]) }
+          : null,
         songs: songs.map(formatSong),
         artists: [],
         albums: [],
@@ -215,8 +227,12 @@ async function executeSearch(query: string, scope?: { type: string; id: string }
 
   // Determine top result
   let topResult: { type: string; data: any } | null = null;
-  const topArtistScore = artistsRaw[0] ? calculateRelevance(artistsRaw[0].name, query) : 0;
-  const topSongScore = songsRaw[0] ? calculateRelevance(songsRaw[0].title, query) : 0;
+  const topArtistScore = artistsRaw[0]
+    ? calculateRelevance(artistsRaw[0].name, query)
+    : 0;
+  const topSongScore = songsRaw[0]
+    ? calculateRelevance(songsRaw[0].title, query)
+    : 0;
 
   if (topArtistScore >= 85 && rankedArtists.length > 0) {
     topResult = { type: "artist", data: rankedArtists[0] };
@@ -258,12 +274,16 @@ searchRouter.post("/", zValidator("json", searchSchema), async (c) => {
 searchRouter.get("/", async (c) => {
   const query = c.req.query("q") || c.req.query("query") || "";
   if (!query.trim()) {
-    return c.json({ success: false, message: "عبارت جستجو ارسال نشده است." }, 400);
+    return c.json(
+      { success: false, message: "عبارت جستجو ارسال نشده است." },
+      400
+    );
   }
 
   const scopeType = c.req.query("scopeType") as any;
   const scopeId = c.req.query("scopeId");
-  const scope = scopeType && scopeId ? { type: scopeType, id: scopeId } : undefined;
+  const scope =
+    scopeType && scopeId ? { type: scopeType, id: scopeId } : undefined;
 
   const results = await executeSearch(query, scope);
   return c.json({

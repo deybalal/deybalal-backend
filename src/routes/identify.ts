@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { prisma } from "../lib/prisma.js";
-import { formatSong } from "../lib/formatters.js";
-import { defaultSongInclude } from "./home.js";
+import { prisma } from "../lib/prisma.ts";
+import { formatSong } from "../lib/formatters.ts";
+import { defaultSongInclude } from "./home.ts";
 
 export const identifyRouter = new Hono();
 
@@ -30,7 +30,8 @@ identifyRouter.post("/", async (c) => {
     // are matched against the indexed songs database.
     // As a robust backend fallback, if a songId or hint is passed, match it;
     // otherwise return the most matching popular active song or empty match.
-    const hintTitle = (body["title"] as string) || (body["hint"] as string) || "";
+    const hintTitle =
+      (body["title"] as string) || (body["hint"] as string) || "";
     let song = null;
 
     if (hintTitle) {

@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { prisma } from "../lib/prisma.js";
-import { authMiddleware, optionalAuthMiddleware } from "../middleware/auth.js";
-import { getAssetUrl } from "../lib/cdn.js";
+import { prisma } from "../lib/prisma.ts";
+import { authMiddleware, optionalAuthMiddleware } from "../middleware/auth.ts";
+import { getAssetUrl } from "../lib/cdn.ts";
 
 export const commentsRouter = new Hono();
 
@@ -42,7 +42,10 @@ commentsRouter.get("/", optionalAuthMiddleware, async (c) => {
   const albumId = c.req.query("albumId");
 
   if (!songId && !albumId) {
-    return c.json({ success: false, message: "ارسال songId یا albumId الزامی است." }, 400);
+    return c.json(
+      { success: false, message: "ارسال songId یا albumId الزامی است." },
+      400
+    );
   }
 
   const baseFilter = {
@@ -54,10 +57,7 @@ commentsRouter.get("/", optionalAuthMiddleware, async (c) => {
 
   const visibilityCondition = user
     ? {
-        OR: [
-          { isActive: true },
-          { userId: user.id },
-        ],
+        OR: [{ isActive: true }, { userId: user.id }],
       }
     : { isActive: true };
 
@@ -74,10 +74,7 @@ commentsRouter.get("/", optionalAuthMiddleware, async (c) => {
           isDeleted: false,
           ...(user
             ? {
-                OR: [
-                  { isActive: true },
-                  { userId: user.id },
-                ],
+                OR: [{ isActive: true }, { userId: user.id }],
               }
             : { isActive: true }),
         },
@@ -115,7 +112,10 @@ commentsRouter.post(
     const { content, songId, albumId, parentId } = c.req.valid("json");
 
     if (!songId && !albumId) {
-      return c.json({ success: false, message: "ارسال songId یا albumId الزامی است." }, 400);
+      return c.json(
+        { success: false, message: "ارسال songId یا albumId الزامی است." },
+        400
+      );
     }
 
     let postTitle = "";
@@ -139,7 +139,8 @@ commentsRouter.post(
     }
 
     // Auto-approve comments if admin or moderator
-    const isAutoActive = user.role === "administrator" || user.role === "moderator";
+    const isAutoActive =
+      user.role === "administrator" || user.role === "moderator";
 
     const comment = await prisma.comment.create({
       data: {

@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { prisma } from "../lib/prisma.js";
-import { authMiddleware, requireRoles } from "../middleware/auth.js";
-import { getAssetUrl } from "../lib/cdn.js";
+import { prisma } from "../lib/prisma.ts";
+import { authMiddleware, requireRoles } from "../middleware/auth.ts";
+import { getAssetUrl } from "../lib/cdn.ts";
 
 export const lyricsRouter = new Hono();
 
@@ -20,59 +20,72 @@ const suggestSchema = z.object({
  * POST /api/v1/lyrics/suggest
  * Submits lyrics or synced LRC text for a song.
  */
-lyricsRouter.post("/", authMiddleware, zValidator("json", suggestSchema), async (c) => {
-  const user = c.get("user")!;
-  const body = c.req.valid("json");
+lyricsRouter.post(
+  "/",
+  authMiddleware,
+  zValidator("json", suggestSchema),
+  async (c) => {
+    const user = c.get("user")!;
+    const body = c.req.valid("json");
 
-  if (!body.lyrics && !body.syncedLyrics) {
-    return c.json({ success: false, message: "ارسال متن یا لیریکس همگام‌سازی شده الزامی است." }, 400);
-  }
+    if (!body.lyrics && !body.syncedLyrics) {
+      return c.json(
+        {
+          success: false,
+          message: "ارسال متن یا لیریکس همگام‌سازی شده الزامی است.",
+        },
+        400
+      );
+    }
 
-  const song = await prisma.song.findUnique({
-    where: { id: body.songId },
-    select: { id: true, title: true, artist: true },
-  });
+    const song = await prisma.song.findUnique({
+      where: { id: body.songId },
+      select: { id: true, title: true, artist: true },
+    });
 
-  if (!song) {
-    return c.json({ success: false, message: "آهنگ یافت نشد." }, 404);
-  }
+    if (!song) {
+      return c.json({ success: false, message: "آهنگ یافت نشد." }, 404);
+    }
 
-  const suggestion = await prisma.lyricsSuggestion.create({
-    data: {
-      songId: song.id,
-      userId: user.id,
-      lyrics: body.lyrics || null,
-      syncedLyrics: body.syncedLyrics || null,
-      type: body.type || (body.syncedLyrics ? "SYNCED" : "LYRICS"),
-      lyricsSource: body.lyricsSource || null,
-      lyricsSourceUrl: body.lyricsSourceUrl || null,
-      status: "PENDING",
-    },
-  });
-
-  // Create notification for user
-  await prisma.notification.create({
-    data: {
-      userId: user.id,
-      type: "LYRICS_SUGGESTION",
-      title: "ثبت متن آهنگ",
-      message: `پیشنهاد متن شما برای آهنگ "${song.title}" با موفقیت ثبت شد و پس از بررسی اعمال خواهد شد.`,
-      link: `/song/${song.id}`,
-    },
-  }).catch(() => null);
-
-  return c.json(
-    {
-      success: true,
-      message: "متن آهنگ با موفقیت ارسال شد و در انتظار تایید است.",
+    const suggestion = await prisma.lyricsSuggestion.create({
       data: {
-        id: suggestion.id,
-        status: suggestion.status,
+        songId: song.id,
+        userId: user.id,
+        lyrics: body.lyrics || null,
+        syncedLyrics: body.syncedLyrics || null,
+        type: body.type || (body.syncedLyrics ? "SYNCED" : "LYRICS"),
+        lyricsSource: body.lyricsSource || null,
+        lyricsSourceUrl: body.lyricsSourceUrl || null,
+        status: "PENDING",
       },
-    },
-    201
-  );
-});
+    });
+
+    // Create notification for user
+    await prisma.notification
+      .create({
+        data: {
+          userId: user.id,
+          type: "LYRICS_SUGGESTION",
+          title: "ثبت متن آهنگ",
+          message: `پیشنهاد متن شما برای آهنگ "${song.title}" با موفقیت ثبت شد و پس از بررسی اعمال خواهد شد.`,
+          link: `/song/${song.id}`,
+        },
+      })
+      .catch(() => null);
+
+    return c.json(
+      {
+        success: true,
+        message: "متن آهنگ با موفقیت ارسال شد و در انتظار تایید است.",
+        data: {
+          id: suggestion.id,
+          status: suggestion.status,
+        },
+      },
+      201
+    );
+  }
+);
 
 /**
  * GET /api/v1/lyrics/suggestions
@@ -83,12 +96,21 @@ lyricsRouter.get(
   authMiddleware,
   requireRoles(["administrator", "moderator"]),
   async (c) => {
-    const statusParam = c.req.query("status") as "PENDING" | "APPROVED" | "REJECTED" | undefined;
+    const statusParam = c.req.query("status") as
+      | "PENDING"
+      | "APPROVED"
+      | "REJECTED"
+      | undefined;
     const page = Math.max(1, parseInt(c.req.query("page") || "1", 10));
-    const limit = Math.min(100, Math.max(1, parseInt(c.req.query("limit") || "20", 10)));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(c.req.query("limit") || "20", 10))
+    );
     const skip = (page - 1) * limit;
 
-    const where = statusParam ? { status: statusParam } : { status: "PENDING" as const };
+    const where = statusParam
+      ? { status: statusParam }
+      : { status: "PENDING" as const };
 
     const [total, suggestions] = await Promise.all([
       prisma.lyricsSuggestion.count({ where }),
@@ -163,7 +185,10 @@ lyricsRouter.put(
     });
 
     if (!suggestion) {
-      return c.json({ success: false, message: "پیشنهاد مورد نظر یافت نشد." }, 404);
+      return c.json(
+        { success: false, message: "پیشنهاد مورد نظر یافت نشد." },
+        404
+      );
     }
 
     if (status === "APPROVED") {
@@ -173,9 +198,15 @@ lyricsRouter.put(
           where: { id: suggestion.songId },
           data: {
             ...(suggestion.lyrics ? { lyrics: suggestion.lyrics } : {}),
-            ...(suggestion.syncedLyrics ? { syncedLyrics: suggestion.syncedLyrics } : {}),
-            ...(suggestion.lyricsSource ? { lyricsSource: suggestion.lyricsSource } : {}),
-            ...(suggestion.lyricsSourceUrl ? { lyricsSourceUrl: suggestion.lyricsSourceUrl } : {}),
+            ...(suggestion.syncedLyrics
+              ? { syncedLyrics: suggestion.syncedLyrics }
+              : {}),
+            ...(suggestion.lyricsSource
+              ? { lyricsSource: suggestion.lyricsSource }
+              : {}),
+            ...(suggestion.lyricsSourceUrl
+              ? { lyricsSourceUrl: suggestion.lyricsSourceUrl }
+              : {}),
           },
         });
 
@@ -186,7 +217,8 @@ lyricsRouter.put(
         });
 
         // Upsert Contributor record
-        const contributorType = suggestion.type === "SYNCED" ? "synced_lyrics" : "lyrics";
+        const contributorType =
+          suggestion.type === "SYNCED" ? "synced_lyrics" : "lyrics";
         const existingContributor = await tx.contributor.findUnique({
           where: {
             songId_userId_type: {

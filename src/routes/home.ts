@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { prisma } from "../lib/prisma.js";
-import { formatSong, formatAlbum, formatArtist } from "../lib/formatters.js";
+import { prisma } from "../lib/prisma.ts";
+import { formatSong, formatAlbum, formatArtist } from "../lib/formatters.ts";
 
 export const homeRouter = new Hono();
 
@@ -36,76 +36,82 @@ function shuffleArray<T>(array: T[]): T[] {
  * Consolidates all discovery data for Android App home screen.
  */
 homeRouter.get("/", async (c) => {
-  const [featuredRaw, newSongsRaw, mostPlayedRaw, newAlbumsRaw, popularGenresRaw, radioPlaylistsRaw] =
-    await Promise.all([
-      // 1. Featured songs (10 songs, shuffled)
-      prisma.song.findMany({
-        where: { isActive: true, isFeatured: true, isDisabled: false },
-        take: 30,
-        orderBy: { createdAt: "desc" },
-        include: defaultSongInclude,
-      }),
+  const [
+    featuredRaw,
+    newSongsRaw,
+    mostPlayedRaw,
+    newAlbumsRaw,
+    popularGenresRaw,
+    radioPlaylistsRaw,
+  ] = await Promise.all([
+    // 1. Featured songs (10 songs, shuffled)
+    prisma.song.findMany({
+      where: { isActive: true, isFeatured: true, isDisabled: false },
+      take: 30,
+      orderBy: { createdAt: "desc" },
+      include: defaultSongInclude,
+    }),
 
-      // 2. New songs (14 songs)
-      prisma.song.findMany({
-        where: { isActive: true, isDisabled: false },
-        take: 14,
-        orderBy: { createdAt: "desc" },
-        include: defaultSongInclude,
-      }),
+    // 2. New songs (14 songs)
+    prisma.song.findMany({
+      where: { isActive: true, isDisabled: false },
+      take: 14,
+      orderBy: { createdAt: "desc" },
+      include: defaultSongInclude,
+    }),
 
-      // 3. Most played songs (20 songs)
-      prisma.song.findMany({
-        where: { isActive: true, isDisabled: false },
-        take: 20,
-        orderBy: { playCount: "desc" },
-        include: defaultSongInclude,
-      }),
+    // 3. Most played songs (20 songs)
+    prisma.song.findMany({
+      where: { isActive: true, isDisabled: false },
+      take: 20,
+      orderBy: { playCount: "desc" },
+      include: defaultSongInclude,
+    }),
 
-      // 4. New albums (10 albums)
-      prisma.album.findMany({
-        where: { isActive: true },
-        take: 10,
-        orderBy: { createdAt: "desc" },
-        include: {
-          artist: true,
-          genres: true,
-          songs: {
-            where: { isActive: true, isDisabled: false },
-            include: defaultSongInclude,
-          },
-          _count: {
-            select: { songs: true },
-          },
+    // 4. New albums (10 albums)
+    prisma.album.findMany({
+      where: { isActive: true },
+      take: 10,
+      orderBy: { createdAt: "desc" },
+      include: {
+        artist: true,
+        genres: true,
+        songs: {
+          where: { isActive: true, isDisabled: false },
+          include: defaultSongInclude,
         },
-      }),
+        _count: {
+          select: { songs: true },
+        },
+      },
+    }),
 
-      // 5. Popular genres (10 genres)
-      prisma.genre.findMany({
-        take: 10,
-        orderBy: {
-          songs: {
-            _count: "desc",
-          },
+    // 5. Popular genres (10 genres)
+    prisma.genre.findMany({
+      take: 10,
+      orderBy: {
+        songs: {
+          _count: "desc",
         },
-        include: {
-          _count: {
-            select: { songs: true, albums: true },
-          },
+      },
+      include: {
+        _count: {
+          select: { songs: true, albums: true },
         },
-      }),
+      },
+    }),
 
-      // 6. Recent radio playlists (20 playlists)
-      prisma.radioPlaylist.findMany({
-        take: 20,
-        orderBy: { date: "desc" },
-        include: {
-          _count: {
-            select: { tracks: true },
-          },
+    // 6. Recent radio playlists (20 playlists)
+    prisma.radioPlaylist.findMany({
+      take: 20,
+      orderBy: { date: "desc" },
+      include: {
+        _count: {
+          select: { tracks: true },
         },
-      }),
-    ]);
+      },
+    }),
+  ]);
 
   // Extract top unique artists from most played songs
   const artistMap = new Map<string, any>();
@@ -118,7 +124,9 @@ homeRouter.get("/", async (c) => {
       }
     }
   }
-  const mostPlayedArtists = Array.from(artistMap.values()).slice(0, 10).map(formatArtist);
+  const mostPlayedArtists = Array.from(artistMap.values())
+    .slice(0, 10)
+    .map(formatArtist);
 
   const featuredSongs = shuffleArray(featuredRaw).slice(0, 10).map(formatSong);
   const newSongs = newSongsRaw.map(formatSong);
@@ -190,7 +198,10 @@ homeRouter.get("/s/:index", async (c) => {
 homeRouter.get("/crew/:name", async (c) => {
   const name = decodeURIComponent(c.req.param("name"));
   const page = Math.max(1, parseInt(c.req.query("page") || "1", 10));
-  const limit = Math.min(50, Math.max(1, parseInt(c.req.query("limit") || "20", 10)));
+  const limit = Math.min(
+    50,
+    Math.max(1, parseInt(c.req.query("limit") || "20", 10))
+  );
   const skip = (page - 1) * limit;
 
   const where = {

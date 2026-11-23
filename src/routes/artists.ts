@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { prisma } from "../lib/prisma.js";
-import { formatArtist, formatSong, formatAlbum } from "../lib/formatters.js";
-import { authMiddleware, optionalAuthMiddleware } from "../middleware/auth.js";
-import { defaultSongInclude } from "./home.js";
+import { prisma } from "../lib/prisma.ts";
+import { formatArtist, formatSong, formatAlbum } from "../lib/formatters.ts";
+import { authMiddleware, optionalAuthMiddleware } from "../middleware/auth.ts";
+import { defaultSongInclude } from "./home.ts";
 
 export const artistsRouter = new Hono();
 
@@ -13,7 +13,10 @@ export const artistsRouter = new Hono();
 artistsRouter.get("/", optionalAuthMiddleware, async (c) => {
   const user = c.get("user");
   const page = Math.max(1, parseInt(c.req.query("page") || "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(c.req.query("limit") || "50", 10)));
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(c.req.query("limit") || "50", 10))
+  );
   const skip = (page - 1) * limit;
 
   // If user is an artist and requests their own artist profile
@@ -92,7 +95,10 @@ async function findArtistByIdOrName(idOrName: string) {
 artistsRouter.get("/:id", async (c) => {
   const idOrName = c.req.param("id");
   const page = Math.max(1, parseInt(c.req.query("page") || "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(c.req.query("limit") || "20", 10)));
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(c.req.query("limit") || "20", 10))
+  );
   const skip = (page - 1) * limit;
 
   const artist = await findArtistByIdOrName(idOrName);

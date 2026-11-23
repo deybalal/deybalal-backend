@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { prisma } from "../lib/prisma.js";
-import { formatSong, formatAlbum } from "../lib/formatters.js";
-import { defaultSongInclude } from "./home.js";
+import { prisma } from "../lib/prisma.ts";
+import { formatSong, formatAlbum } from "../lib/formatters.ts";
+import { defaultSongInclude } from "./home.ts";
 
 export const genresRouter = new Hono();
 
@@ -48,12 +48,19 @@ genresRouter.get("/", async (c) => {
 genresRouter.get("/:slug", async (c) => {
   const slug = decodeURIComponent(c.req.param("slug"));
   const page = Math.max(1, parseInt(c.req.query("page") || "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(c.req.query("limit") || "20", 10)));
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(c.req.query("limit") || "20", 10))
+  );
   const skip = (page - 1) * limit;
 
   const genre = await prisma.genre.findFirst({
     where: {
-      OR: [{ slug }, { id: slug }, { name: { equals: slug, mode: "insensitive" as const } }],
+      OR: [
+        { slug },
+        { id: slug },
+        { name: { equals: slug, mode: "insensitive" as const } },
+      ],
     },
     include: {
       albums: {
