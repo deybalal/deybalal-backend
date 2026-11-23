@@ -244,7 +244,7 @@ authRouter.post(
  * Returns authenticated user profile.
  */
 authRouter.get("/me", authMiddleware, async (c) => {
-  const user = c.get("user");
+  const user = c.get("user")!;
   return c.json({
     success: true,
     user: formatSafeUser(user),
